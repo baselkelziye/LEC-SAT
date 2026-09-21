@@ -1,0 +1,12 @@
+# synth_netlist.ys -- "naive" route: minimal elaboration only, no logic
+# optimization (no `synth`, no ABC). `proc` turns the always/case into a
+# mux tree; `techmap` expands the generic $add/$sub/$mux cells into
+# gate-level primitives using Yosys's built-in cell library, without any
+# restructuring/sharing pass. `opt_clean` only removes now-dangling
+# wires left over from techmap -- it does not touch logic structure.
+read_verilog alu4.v
+hierarchy -check -top alu4
+proc
+techmap
+opt_clean
+write_json synth_netlist.json

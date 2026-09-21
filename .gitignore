@@ -1,0 +1,37 @@
+# -------------------------
+# Compiled binaries
+# -------------------------
+cnf_gen
+miter_gen
+
+# Object / compiler files
+*.o
+*.out
+
+# -------------------------
+# Generated synthesis output
+# -------------------------
+plain_synth/
+optimized_synth/
+
+# -------------------------
+# Generated miter output
+# -------------------------
+alu4_miter.cnf
+miter_circuit/*.cnf
+
+# -------------------------
+# Temporary / debug files
+# -------------------------
+core
+core.*
+*.tmp
+*.log
+
+# -------------------------
+# Editor / OS files
+# -------------------------
+.DS_Store
+.vscode/
+.idea/
+*~
