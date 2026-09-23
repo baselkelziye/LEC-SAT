@@ -1,5 +1,5 @@
 // alu4.v
-module alu4 (
+module rhs (
     input  wire [3:0] a,
     input  wire [3:0] b,
     input  wire [1:0] op,     // 00=add, 01=sub, 10=and, 11=or
@@ -15,7 +15,7 @@ module alu4 (
 
     always @(*) begin
         case (op)
-            2'b00: begin res = sum_ext[3:0];  co = sum_ext[3];  end //cout is not correct
+            2'b00: begin res = sum_ext[3:0];  co = sum_ext[4];  end
             2'b01: begin res = diff_ext[3:0]; co = diff_ext[4]; end
             2'b10: begin res = a & b;         co = 1'b0;        end
             2'b11: begin res = a | b;         co = 1'b0;        end

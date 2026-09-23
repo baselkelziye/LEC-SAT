@@ -1,5 +1,5 @@
 // alu4.v
-module alu4 (
+module rhs (
     input  wire [3:0] a,
     input  wire [3:0] b,
     input  wire [1:0] op,     // 00=add, 01=sub, 10=and, 11=or

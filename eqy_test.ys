@@ -1,0 +1,5 @@
+read_verilog design.v
+hierarchy -check -auto-top
+synth
+aigmap
+write_aiger -ascii -map design.map design.aag
