@@ -12,6 +12,7 @@ CASE_DIR := $(CURDIR)/$(TEST)
 
 LHS_V := $(CASE_DIR)/lhs.v
 RHS_V := $(CASE_DIR)/rhs.v
+EXPECTED_FILE := $(CASE_DIR)/expected.txt
 
 
 # ==================================================
@@ -41,7 +42,7 @@ CEX_DECODER := $(ROOT)/miter_circuit/cex_decoder
 
 
 # Automatically discover test directories.
-TESTS := $(sort $(notdir $(wildcard */)))
+TESTS := $(sort $(notdir $(patsubst %/,%,$(wildcard */))))
 
 
 # ==================================================
@@ -56,6 +57,10 @@ run: solve
 # ==================================================
 
 check:
+	@mkdir -p $(BUILD)
+	@rm -f $(MODEL) $(CEX)
+	@case "$$(cat "$(EXPECTED_FILE)")" in SAT|UNSAT) ;; \
+		*) echo "Expected SAT or UNSAT in $(EXPECTED_FILE)"; exit 1 ;; esac
 	@test -f "$(LHS_V)" || { \
 		echo "Missing $(LHS_V)"; \
 		exit 1; \
@@ -143,6 +148,7 @@ solve: miter
 	$(SOLVER) $(MITER) --model $(MODEL); \
 	rc=$$?; \
 	if [ $$rc -eq 10 ]; then \
+		actual=SAT; \
 		echo; \
 		echo "Result: SAT - designs are NOT equivalent"; \
 		echo; \
@@ -157,18 +163,26 @@ solve: miter
 			$(LHS_BUILD)/design.iomap \
 			$(RHS_BUILD)/design.cnf \
 			$(RHS_BUILD)/design.iomap \
-			| tee $(CEX); \
+			> $(CEX) || exit 1; \
+		cat $(CEX); \
 		echo; \
 		echo "Raw model: $(MODEL)"; \
 		echo "CEX file:  $(CEX)"; \
 	elif [ $$rc -eq 20 ]; then \
+		actual=UNSAT; \
 		echo; \
 		echo "Result: UNSAT - designs are equivalent"; \
 		rm -f $(MODEL) $(CEX); \
 	else \
 		echo "Solver failed with exit code $$rc"; \
-		exit $$rc; \
-	fi
+		exit 1; \
+	fi; \
+	expected=$$(cat "$(EXPECTED_FILE)"); \
+	if [ "$$actual" != "$$expected" ]; then \
+		echo "FAIL $(TEST): expected $$expected, got $$actual"; \
+		exit 1; \
+	fi; \
+	echo "PASS $(TEST): expected $$expected, got $$actual"
 
 
 # ==================================================
@@ -176,6 +190,7 @@ solve: miter
 # ==================================================
 
 regression:
+	@test -n "$(TESTS)" || { echo "No equivalence cases found"; exit 1; }
 	@set -e; \
 	for test in $(TESTS); do \
 		echo; \

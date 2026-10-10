@@ -18,15 +18,15 @@ literals, clause learning, VSIDS, or any other DPLL/CDCL optimization.
 From the repository root:
 
 ```bash
-g++ -std=c++17 -O2 -Wall -Wextra \
+g++ -std=c++17 -O2 -Wall -Wextra -Isrc/common \
     -o solvers/backtracking/backtracking_solver \
-    solvers/backtracking/backtracking.cpp
+    src/solvers/backtracking/backtracking.cpp
 ```
 
 Or from this directory:
 
 ```bash
-make
+make -f backtracking.mk
 ```
 
 ## Run on the ALU miter

@@ -1,0 +1,7 @@
+# Yosys is the reference checker; LEC-SAT does not yet implement BMC.
+read_verilog -formal -D NATIVE_ASSERT counter.v
+prep -top counter -flatten
+# Step 1 is the initial state, so 3 snapshots span 2 transitions.
+sat -seq 3 -prove-asserts -verify -show q -show enable -show bad
+# Four snapshots span 3 transitions: failure is expected and required.
+sat -seq 4 -prove-asserts -falsify -show q -show enable -show bad -dump_vcd build/counterexample.vcd

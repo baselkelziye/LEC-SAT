@@ -1,0 +1,7 @@
+# Run from this directory after creating build/ (or use make export).
+read_verilog counter.v
+hierarchy -check -top counter
+synth -top counter -flatten
+dffunmap
+aigmap
+write_aiger -ascii -symbols -map build/counter.map build/counter.aag

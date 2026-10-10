@@ -100,3 +100,4 @@ for a, b, op in itertools.product(range(16), range(16), range(4)):
             print(f"MISMATCH a={a} b={b} op={op}: ref=({exp_r},{exp_c}) netlist=({r1},{c1}) aig=({r2},{c2})")
 
 print(f"done: {mismatches} mismatches out of 1024 combinations")
+raise SystemExit(1 if mismatches else 0)

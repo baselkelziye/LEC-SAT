@@ -1,0 +1,7 @@
+{
+  "queries": [
+    {"name": "output", "aag": "build/counter.aag", "kind": "output", "index": 2, "bound": 5, "first_bad": 3},
+    {"name": "native", "aag": "build/counter_assert.aag", "kind": "bad", "index": 0, "bound": 5, "first_bad": 3},
+    {"name": "short_bound", "aag": "build/counter.aag", "kind": "output", "index": 2, "bound": 2, "first_bad": null}
+  ]
+}

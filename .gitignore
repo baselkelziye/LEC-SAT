@@ -3,6 +3,11 @@
 # -------------------------
 cnf_gen
 miter_gen
+bmc_gen
+__pycache__/
+/build/
+/miter_circuit/cex_decoder
+/solvers/backtracking/backtracking_solver
 
 # Object / compiler files
 *.o
