@@ -1,0 +1,9 @@
+# Same RTL, with its native assertion enabled.
+read_verilog -formal -D NATIVE_ASSERT counter.v
+hierarchy -check -top counter
+prep -top counter -flatten
+write_json build/counter_assert.json
+synth -top counter -flatten
+dffunmap
+aigmap
+write_aiger -ascii -symbols -map build/counter_assert.map build/counter_assert.aag

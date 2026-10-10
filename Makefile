@@ -25,7 +25,7 @@ MITER_GEN := miter_gen
 
 SOLVER_DIR := solvers/backtracking
 SOLVER_MAKEFILE := backtracking.mk
-SOLVER_SRC := $(SOLVER_DIR)/backtracking.cpp
+SOLVER_SRC := src/solvers/backtracking/backtracking.cpp
 SOLVER := $(SOLVER_DIR)/backtracking_solver
 
 CEX_DECODER := miter_circuit/cex_decoder
@@ -43,7 +43,23 @@ EQUIV_MAKEFILE := equiv.mk
 all: tools
 
 
-tools: $(CNF_GEN) $(MITER_GEN) $(SOLVER) $(CEX_DECODER)
+tools: $(CNF_GEN) $(MITER_GEN) $(SOLVER) $(CEX_DECODER) bmc_gen
+
+bmc_gen: src/bmc/bmc_main.cpp src/bmc/bmc_aag.hpp src/common/tseitin.hpp
+	$(CXX) $(CPPFLAGS) -Isrc/common -Ithird_party $(CXXFLAGS) -o $@ src/bmc/bmc_main.cpp
+
+bmc-test: bmc_gen $(SOLVER)
+	$(PYTHON) tests/BMC/test_bmc.py
+
+.PHONY: bmc-test
+
+regression: tools
+	$(PYTHON) tests/regression.py
+
+test-equivalent test-synthesis test-bmc: tools
+	$(PYTHON) tests/regression.py --suite $(patsubst test-%,%,$@)
+
+.PHONY: regression test-equivalent test-synthesis test-bmc
 
 
 # ==================================================
@@ -51,30 +67,31 @@ tools: $(CNF_GEN) $(MITER_GEN) $(SOLVER) $(CEX_DECODER)
 # ==================================================
 
 $(CNF_GEN): \
-	main.cpp \
-	tseitin.hpp \
-	aag_frontend.hpp \
-	json_frontend.hpp \
-	json.hpp
-	$(CXX) $(CXXFLAGS) -o $@ main.cpp
+	src/combinational/main.cpp \
+	src/common/tseitin.hpp \
+	src/combinational/aag_frontend.hpp \
+	src/combinational/json_frontend.hpp \
+	third_party/json.hpp
+	$(CXX) $(CPPFLAGS) -Isrc/common -Ithird_party $(CXXFLAGS) -o $@ src/combinational/main.cpp
 
 
 $(MITER_GEN): \
-	miter_circuit/miter.cpp \
-	miter_circuit/cnf.hpp
-	$(CXX) $(CXXFLAGS) -o $@ miter_circuit/miter.cpp
+	src/equivalence/miter.cpp \
+	src/common/cnf.hpp
+	$(CXX) $(CPPFLAGS) -Isrc/common -Ithird_party $(CXXFLAGS) -o $@ src/equivalence/miter.cpp
 
 
 $(CEX_DECODER): \
-	miter_circuit/cex.cpp \
-	miter_circuit/cnf.hpp
-	$(CXX) $(CXXFLAGS) -o $@ miter_circuit/cex.cpp
+	src/equivalence/cex.cpp \
+	src/common/cnf.hpp
+	mkdir -p $(dir $@)
+	$(CXX) $(CPPFLAGS) -Isrc/common -Ithird_party $(CXXFLAGS) -o $@ src/equivalence/cex.cpp
 
 
 $(SOLVER): \
 	$(SOLVER_SRC) \
 	$(SOLVER_DIR)/$(SOLVER_MAKEFILE) \
-	miter_circuit/cnf.hpp
+	src/common/cnf.hpp
 	$(MAKE) \
 		-C $(SOLVER_DIR) \
 		-f $(SOLVER_MAKEFILE)
@@ -172,6 +189,7 @@ clean-tests:
 
 clean:
 	rm -f $(CNF_GEN)
+	rm -f bmc_gen
 	rm -f $(MITER_GEN)
 	rm -f $(CEX_DECODER)
 	rm -f $(MITER_CNF)

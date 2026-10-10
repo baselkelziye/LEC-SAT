@@ -1,0 +1,5 @@
+{
+  "queries": [
+    {"name": "q_high", "aag": "build/toggle.aag", "kind": "output", "index": 0, "bound": 3, "first_bad": 1}
+  ]
+}

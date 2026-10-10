@@ -1,7 +1,8 @@
 # cnf_gen
 
 Converts a combinational circuit to DIMACS CNF + a companion `.iomap` file,
-via two frontends that share one Tseitin-encoding backend (`tseitin.hpp`).
+via two frontends under `src/combinational/` that share one Tseitin-encoding
+backend (`src/common/tseitin.hpp`).
 
 ## Build
 

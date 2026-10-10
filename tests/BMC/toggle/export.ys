@@ -1,0 +1,5 @@
+read_verilog toggle.v
+synth -top toggle -flatten
+dffunmap
+aigmap
+write_aiger -ascii -symbols build/toggle.aag

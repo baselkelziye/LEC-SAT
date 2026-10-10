@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "../../miter_circuit/cnf.hpp"
+#include "cnf.hpp"
 
 enum class Value : int8_t {
     Unassigned = -1,
