@@ -35,7 +35,7 @@ CEX := $(BUILD)/cex.txt
 # Tools
 # ==================================================
 
-SYNTH_SCRIPT := $(ROOT)/eqy_test.ys
+SYNTH_SCRIPT := $(ROOT)/scripts/eqy_test.ys
 
 CNF_GEN := $(ROOT)/build/combinational/cnf_gen
 MITER_GEN := $(ROOT)/build/equivalence/miter_gen

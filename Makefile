@@ -130,11 +130,11 @@ $(SOLVER): \
 #   optimized synthesis
 # ==================================================
 
-plain_synth: $(CNF_GEN)
+plain_synth: $(CNF_GEN) scripts/synth_netlist.ys
 	mkdir -p $(PLAIN_DIR)
 	@$(PYTHON) -c 'assert int("$(N)") >= 2, "N must be at least 2"'
 	cp $(TOP_V) $(PLAIN_DIR)/alu4.v
-	sed 's/^chparam -set N 4 /chparam -set N $(N) /' synth_netlist.ys > $(PLAIN_DIR)/synth.ys
+	sed 's/^chparam -set N 4 /chparam -set N $(N) /' scripts/synth_netlist.ys > $(PLAIN_DIR)/synth.ys
 
 	cd $(PLAIN_DIR) && \
 		$(YOSYS) -q -s synth.ys
@@ -147,11 +147,11 @@ plain_synth: $(CNF_GEN)
 		$(PLAIN_DIR)/alu4
 
 
-optimized_synth: $(CNF_GEN)
+optimized_synth: $(CNF_GEN) scripts/synth_direct.ys
 	mkdir -p $(OPT_DIR)
 	@$(PYTHON) -c 'assert int("$(N)") >= 2, "N must be at least 2"'
 	cp $(TOP_V) $(OPT_DIR)/alu4.v
-	sed 's/^chparam -set N 4 /chparam -set N $(N) /' synth_direct.ys > $(OPT_DIR)/synth.ys
+	sed 's/^chparam -set N 4 /chparam -set N $(N) /' scripts/synth_direct.ys > $(OPT_DIR)/synth.ys
 
 	cd $(OPT_DIR) && \
 		$(YOSYS) -q -s synth.ys

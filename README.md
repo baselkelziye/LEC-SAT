@@ -212,6 +212,7 @@ reusing binaries linked against another machine's libraries.
 ## Source layout
 
 ```text
+scripts/                    Shared Yosys synthesis/export scripts
 src/common/                 Shared CNF builder and DIMACS utilities
 src/combinational/          Combinational JSON/AAG frontends and main
 src/equivalence/            Miter generator and counterexample decoder
@@ -236,7 +237,9 @@ build/solvers/minisat/minisat
 Synthesis artifacts live in `build/synthesis/{plain,optimized}`; equivalence
 fixtures in `build/equivalent`; regression logs in `build/tests`; and benchmarks
 in `build/benchmarks`. Standalone BMC fixtures use their own local `build/`.
-Python drivers and Yosys scripts remain at their existing source paths.
+Shared Yosys source scripts live in `scripts/`; BMC scripts stay with their
+fixtures under `tests/BMC/`. Make generates width-specific copies in each build
+directory before running Yosys. Python drivers remain at the project root.
 
 `make clean` removes all generated outputs, including benchmark reports, fixture
 build directories, and Python caches. `make clean-tests` removes test/synthesis
