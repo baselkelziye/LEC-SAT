@@ -1,6 +1,6 @@
 # First BMC example: a two-bit counter
 
-This is a learning fixture for LEC-SAT's AAG BMC layer. The new `bmc_gen` encoder and `bmc.py` driver use the existing backtracking solver. Yosys also supplies a reference bounded check here. The original combinational frontends remain separate.
+This is a learning fixture for LEC-SAT's AAG BMC layer. The `bmc_gen` encoder and `bmc.py` driver use MiniSat by default through the shared solver adapter. Select the original solver with `--solver backtracking`. Yosys also supplies a reference bounded check here. The original combinational frontends remain separate.
 
 ## Run LEC-SAT BMC
 
@@ -33,12 +33,12 @@ To inspect one exact-depth encoding without running SAT:
 
 ```sh
 mkdir -p build/bmc-manual
-./bmc_gen tests/BMC/counter/build/counter.aag 3 output 2 build/bmc-manual/depth3
+./build/bmc/bmc_gen tests/BMC/counter/build/counter.aag 3 output 2 build/bmc-manual/depth3
 ```
 
 Initialization is preserved: omitted AAG latch initialization means zero, explicit 1 means one, and a latch's own literal means unconstrained. No additional zero assumption is added. The CLI selects an output/property by zero-based index; the name `bad` is not automatically selected. The parser supports ASCII AIGER, register initialization, ordinary outputs, and native bad entries. Constraints, justice, and fairness sections are rejected. This first version assumes the input AAG already correctly models the intended synchronous clock steps; it cannot recover or validate RTL clock domains from AAG. Sequential JSON import is not implemented. The plain backtracking solver is intended for small learning examples.
 
-Run semantic regressions with `make bmc-test` from LEC-SAT.
+Run semantic regressions with `make test-bmc-unit` from LEC-SAT.
 
 ## Run
 

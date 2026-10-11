@@ -1,5 +1,13 @@
 import itertools
+import argparse
+from functools import lru_cache
+import os
+from pathlib import Path
+import random
+import subprocess
+from solver import solve
 
+@lru_cache(maxsize=None)
 def load_cnf(path):
     clauses = []
     nvars = 0
@@ -14,6 +22,7 @@ def load_cnf(path):
             clauses.append(lits)
     return nvars, clauses
 
+@lru_cache(maxsize=None)
 def load_iomap(path):
     entries = []
     with open(path) as f:
@@ -47,20 +56,21 @@ def bcp_evaluate(nvars, clauses, forced):
         raise RuntimeError(f"{len(missing)} variables not determined by BCP, e.g. {missing[:5]}")
     return val
 
-def alu4_ref(a, b, op):
-    a &= 0xF; b &= 0xF
+def alu4_ref(a, b, op, width=4):
+    mask = (1 << width) - 1
+    a &= mask; b &= mask
     if op == 0:
         s = a + b
-        return s & 0xF, (s >> 4) & 1
+        return s & mask, (s >> width) & 1
     elif op == 1:
-        s = (a - b) & 0x1F
-        return s & 0xF, (s >> 4) & 1
+        s = a - b
+        return s & mask, (s >> width) & 1
     elif op == 2:
         return a & b, 0
     else:
         return a | b, 0
 
-def eval_circuit(cnf_path, iomap_path, a, b, op):
+def eval_circuit(cnf_path, iomap_path, a, b, op, width=4):
     nvars, clauses = load_cnf(cnf_path)
     io = load_iomap(iomap_path)
     forced = {}
@@ -71,8 +81,8 @@ def eval_circuit(cnf_path, iomap_path, a, b, op):
                     bitval = (value >> bit) & 1
                     truth = bool(bitval) if pol == '+' else not bool(bitval)
                     forced[var] = truth
-    set_bits('a', 4, a)
-    set_bits('b', 4, b)
+    set_bits('a', width, a)
+    set_bits('b', width, b)
     set_bits('op', 2, op)
     val = bcp_evaluate(nvars, clauses, forced)
     def get_bits(port, width):
@@ -85,19 +95,56 @@ def eval_circuit(cnf_path, iomap_path, a, b, op):
                         v = not v
                     out |= (1 if v else 0) << bit
         return out
-    result = get_bits('result', 4)
+    result = get_bits('result', width)
     cout = get_bits('cout', 1)
     return result, cout
 
-mismatches = 0
-for a, b, op in itertools.product(range(16), range(16), range(4)):
-    exp_r, exp_c = alu4_ref(a, b, op)
-    r1, c1 = eval_circuit('plain_synth/alu4.cnf', 'plain_synth/alu4.iomap', a, b, op)
-    r2, c2 = eval_circuit('optimized_synth/alu4.cnf', 'optimized_synth/alu4.iomap', a, b, op)
-    if (r1, c1) != (exp_r, exp_c) or (r2, c2) != (exp_r, exp_c):
-        mismatches += 1
-        if mismatches <= 5:
-            print(f"MISMATCH a={a} b={b} op={op}: ref=({exp_r},{exp_c}) netlist=({r1},{c1}) aig=({r2},{c2})")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--width', type=int, default=int(os.environ.get('N', 4)))
+    parser.add_argument('--plain', type=Path, default=Path('build/synthesis/plain'))
+    parser.add_argument('--optimized', type=Path, default=Path('build/synthesis/optimized'))
+    parser.add_argument('--miter', type=Path, default=Path('build/synthesis/miter.cnf'))
+    args = parser.parse_args()
+    if args.width < 2:
+        parser.error('width must be at least 2')
+    for directory in (args.plain, args.optimized):
+        io = load_iomap(directory / 'alu4.iomap')
+        for direction, port, count in [('i', 'a', args.width), ('i', 'b', args.width),
+                                       ('i', 'op', 2), ('o', 'result', args.width), ('o', 'cout', 1)]:
+            bits = sorted(bit for d, p, bit, _, _ in io if (d, p) == (direction, port))
+            if bits != list(range(count)):
+                raise RuntimeError(f'{directory}: wrong width for {port}: {bits}')
+    root = Path(__file__).resolve().parent
+    args.miter.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run([str(root / 'build/equivalence/miter_gen'), str(args.plain / 'alu4.cnf'), str(args.plain / 'alu4.iomap'),
+                    str(args.optimized / 'alu4.cnf'), str(args.optimized / 'alu4.iomap'), str(args.miter)], check=True)
+    result = solve(args.miter, args.miter.with_suffix('.model'), timeout=float(os.environ.get('SOLVER_TIMEOUT', 30)))
+    print(result.stdout, end='')
+    print(result.stderr, end='')
+    if result.returncode != 20:
+        raise RuntimeError('synthesis routes must be equivalent (expected UNSAT)')
+    if args.width <= 4:
+        vectors = itertools.product(range(1 << args.width), range(1 << args.width), range(4))
+        mode = 'exhaustive'
+    else:
+        mask = (1 << args.width) - 1
+        edges = sorted({0, 1, mask, mask - 1, 1 << (args.width - 1), (1 << (args.width - 1)) - 1})
+        vectors = list(itertools.product(edges, edges, range(4)))
+        rng = random.Random(0)
+        vectors += [(rng.getrandbits(args.width), rng.getrandbits(args.width), op)
+                    for _ in range(16) for op in range(4)]
+        mode = 'directed + seeded samples'
+    count = 0
+    for a, b, op in vectors:
+        expected = alu4_ref(a, b, op, args.width)
+        for directory in (args.plain, args.optimized):
+            actual = eval_circuit(directory / 'alu4.cnf', directory / 'alu4.iomap', a, b, op, args.width)
+            if actual != expected:
+                raise RuntimeError(f'N={args.width} a={a} b={b} op={op}: expected {expected}, got {actual}')
+        count += 1
+    print(f'PASS synthesis: UNSAT miter; reference {mode}, {count} vectors, N={args.width}')
 
-print(f"done: {mismatches} mismatches out of 1024 combinations")
-raise SystemExit(1 if mismatches else 0)
+
+if __name__ == '__main__':
+    main()

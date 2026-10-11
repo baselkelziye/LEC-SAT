@@ -1,4 +1,5 @@
 read_verilog toggle.v
+chparam -set N 4 toggle
 synth -top toggle -flatten
 dffunmap
 aigmap

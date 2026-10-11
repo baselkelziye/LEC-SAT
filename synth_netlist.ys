@@ -5,6 +5,7 @@
 # restructuring/sharing pass. `opt_clean` only removes now-dangling
 # wires left over from techmap -- it does not touch logic structure.
 read_verilog alu4.v
+chparam -set N 4 alu4
 hierarchy -check -top alu4
 proc
 techmap

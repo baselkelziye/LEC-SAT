@@ -1,5 +1,8 @@
 # Plain backtracking SAT solver
 
+MiniSat is now the default. Select this educational solver with
+`make regression SAT_SOLVER=backtracking` or BMC's `--solver backtracking`.
+
 This is the first SAT solver for the project. It intentionally implements only
 recursive backtracking:
 
@@ -18,9 +21,7 @@ literals, clause learning, VSIDS, or any other DPLL/CDCL optimization.
 From the repository root:
 
 ```bash
-g++ -std=c++17 -O2 -Wall -Wextra -Isrc/common \
-    -o solvers/backtracking/backtracking_solver \
-    src/solvers/backtracking/backtracking.cpp
+make build/solvers/backtracking/backtracking_solver
 ```
 
 Or from this directory:
@@ -34,7 +35,7 @@ make -f backtracking.mk
 From the repository root:
 
 ```bash
-./solvers/backtracking/backtracking_solver miter_circuit/alu4_miter.cnf
+./build/solvers/backtracking/backtracking_solver build/synthesis/miter.cnf
 ```
 
 For equivalent circuits the expected result is:

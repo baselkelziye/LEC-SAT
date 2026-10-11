@@ -1,5 +1,6 @@
 # synth_direct.ys -- "direct" route: design -> AIG -> (cnf_gen --from-aag)
 read_verilog alu4.v
+chparam -set N 4 alu4
 hierarchy -check -top alu4
 synth -top alu4
 aigmap                              # collapse to $_AND_/$_NOT_ primitives

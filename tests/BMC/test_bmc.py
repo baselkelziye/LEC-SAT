@@ -1,12 +1,14 @@
-"""Semantic regressions: solve generated queries with the project's own solver."""
+"""Semantic regressions: solve generated queries with the selected SAT solver."""
 import importlib.util
 from pathlib import Path
 import subprocess
 import shutil
 import tempfile
 import unittest
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 spec = importlib.util.spec_from_file_location("bmc", ROOT / "bmc.py")
 bmc = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bmc)
@@ -48,7 +50,7 @@ class BmcTests(unittest.TestCase):
         aag = self.path / "test.aag"
         aag.write_text(text)
         prefix = self.path / "query"
-        result = subprocess.run([str(ROOT / "bmc_gen"), str(aag), str(depth), kind,
+        result = subprocess.run([str(ROOT / "build/bmc/bmc_gen"), str(aag), str(depth), kind,
                                  str(index), str(prefix)], capture_output=True, text=True)
         return result, prefix
 
@@ -66,9 +68,8 @@ class BmcTests(unittest.TestCase):
             lines.extend(f"{lit} 0" for lit in extra)
             cnf.write_text("\n".join(lines) + "\n")
         model = prefix.with_suffix(".model")
-        solved = subprocess.run([str(ROOT / "solvers/backtracking/backtracking_solver"),
-                                 str(cnf), "--model", str(model)], capture_output=True, timeout=15)
-        self.assertIn(solved.returncode, (10, 20), solved.stderr.decode())
+        solved = bmc.solve(cnf, model, timeout=15)
+        self.assertIn(solved.returncode, (10, 20), solved.stderr)
         values = bmc.read_model(model, cnf) if solved.returncode == 10 else None
         return solved.returncode == 10, values, prefix
 

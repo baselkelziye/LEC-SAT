@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Check exact depths in increasing order using the existing backtracking solver."""
+"""Check exact depths in increasing order using the selected SAT solver."""
 import argparse
 import re
 from pathlib import Path
 import subprocess
 import sys
+from solver import BACKENDS, read_model, solve
 
 ROOT = Path(__file__).resolve().parent
 
@@ -14,38 +15,6 @@ def nonnegative(value):
     if result < 0:
         raise argparse.ArgumentTypeError("must be nonnegative")
     return result
-
-
-def read_model(path, cnf):
-    """Reject incomplete/invalid solver witnesses before printing a trace."""
-    values = {}
-    for line in path.read_text().splitlines():
-        if line.startswith("v "):
-            for lit in map(int, line.split()[1:]):
-                if lit:
-                    if abs(lit) in values and values[abs(lit)] != (lit > 0):
-                        raise RuntimeError("contradictory SAT model")
-                    values[abs(lit)] = lit > 0
-    clauses = []
-    clause = []
-    nvars = None
-    for line in cnf.read_text().splitlines():
-        if line.startswith("c"):
-            continue
-        if line.startswith("p"):
-            nvars = int(line.split()[2])
-            continue
-        for lit in map(int, line.split()):
-            if lit:
-                clause.append(lit)
-            else:
-                clauses.append(clause)
-                clause = []
-    if nvars is None or any(v not in values for v in range(1, nvars + 1)):
-        raise RuntimeError("incomplete SAT model")
-    if clause or any(not any(values[abs(lit)] == (lit > 0) for lit in c) for c in clauses):
-        raise RuntimeError("SAT model does not satisfy generated CNF")
-    return values
 
 
 def trace_text(frame_map, values):
@@ -67,6 +36,7 @@ def main():
     choice.add_argument("--bad", type=nonnegative, help="zero-based native bad-property index")
     p.add_argument("--out-dir", type=Path, default=ROOT / "build/bmc")
     p.add_argument("--timeout", type=float, default=30, help="solver seconds per depth (default 30)")
+    p.add_argument("--solver", choices=BACKENDS, help="default: SAT_SOLVER environment or minisat")
     args = p.parse_args()
     if args.timeout <= 0:
         p.error("timeout must be positive")
@@ -81,7 +51,7 @@ def main():
     index = args.output if args.output is not None else args.bad
     for depth in range(args.bound + 1):
         prefix = args.out_dir / f"depth_{depth}"
-        generated = subprocess.run([str(ROOT / "bmc_gen"), str(args.aag), str(depth), kind,
+        generated = subprocess.run([str(ROOT / "build/bmc/bmc_gen"), str(args.aag), str(depth), kind,
                                     str(index), str(prefix)], capture_output=True, text=True)
         prefix.with_suffix(".encoder.log").write_text(generated.stdout + generated.stderr)
         if generated.returncode:
@@ -89,9 +59,8 @@ def main():
         model = prefix.with_suffix(".model")
         model.unlink(missing_ok=True)
         try:
-            result = subprocess.run([str(ROOT / "solvers/backtracking/backtracking_solver"),
-                                     str(prefix.with_suffix(".cnf")), "--model", str(model)],
-                                    capture_output=True, text=True, timeout=args.timeout)
+            result = solve(prefix.with_suffix(".cnf"), model,
+                           backend=args.solver, timeout=args.timeout)
         except subprocess.TimeoutExpired as error:
             prefix.with_suffix(".log").write_text(
                 (error.stdout or b"").decode(errors="replace") +

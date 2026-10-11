@@ -7,7 +7,10 @@ The supported scope remains synchronous-step ASCII AIGER safety checking;
 constraints, justice, and fairness are rejected.
 
 `make test-bmc` runs the semantic tests plus each `tests/BMC/*/case.json`.
-`make bmc-test` retains the faster semantic-only entry point.
+`make test-bmc-unit` retains the faster semantic-only entry point.
+MiniSat is the default. Use `make test-bmc SAT_SOLVER=backtracking` to compare
+backends, or `--solver backtracking` when invoking `bmc.py` directly.
+Both backends use the same CNF validation and decoded trace format.
 
 Regression logs are indexed in `build/tests/README.md`. Each query writes to
 `build/tests/bmc/<case>/<query>/`: `depth_N.unroll.txt` explains each frame's

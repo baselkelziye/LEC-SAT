@@ -3,6 +3,8 @@ ROOT := $(abspath ../..)
 YOSYS ?= yosys
 
 TEST ?= alu
+N ?= 4
+EQUIV_BUILD_ROOT ?= $(ROOT)/build/equivalent
 
 # ==================================================
 # Test sources
@@ -19,7 +21,7 @@ EXPECTED_FILE := $(CASE_DIR)/expected.txt
 # Generated files
 # ==================================================
 
-BUILD := $(ROOT)/build/equivalent/$(TEST)
+BUILD := $(EQUIV_BUILD_ROOT)/$(TEST)
 
 LHS_BUILD := $(BUILD)/lhs
 RHS_BUILD := $(BUILD)/rhs
@@ -35,14 +37,11 @@ CEX := $(BUILD)/cex.txt
 
 SYNTH_SCRIPT := $(ROOT)/eqy_test.ys
 
-CNF_GEN := $(ROOT)/cnf_gen
-MITER_GEN := $(ROOT)/miter_gen
-SOLVER := $(ROOT)/solvers/backtracking/backtracking_solver
-CEX_DECODER := $(ROOT)/miter_circuit/cex_decoder
-
-
-# Automatically discover test directories.
-TESTS := $(sort $(notdir $(patsubst %/,%,$(wildcard */))))
+CNF_GEN := $(ROOT)/build/combinational/cnf_gen
+MITER_GEN := $(ROOT)/build/equivalence/miter_gen
+PYTHON ?= python3
+SOLVER := $(PYTHON) $(ROOT)/solver.py
+CEX_DECODER := $(ROOT)/build/equivalence/cex_decoder
 
 
 # ==================================================
@@ -57,6 +56,7 @@ run: solve
 # ==================================================
 
 check:
+	@$(PYTHON) -c 'assert int("$(N)") >= 2, "N must be at least 2"'
 	@mkdir -p $(BUILD)
 	@rm -f $(MODEL) $(CEX)
 	@case "$$(cat "$(EXPECTED_FILE)")" in SAT|UNSAT) ;; \
@@ -84,8 +84,10 @@ lhs: check
 
 	cp $(LHS_V) $(LHS_BUILD)/design.v
 
+	sed '/^read_verilog/a chparam -set N $(N) lhs' $(SYNTH_SCRIPT) > $(LHS_BUILD)/synth.ys
+
 	cd $(LHS_BUILD) && \
-		$(YOSYS) -q -s $(SYNTH_SCRIPT)
+		$(YOSYS) -q -s synth.ys
 
 	$(CNF_GEN) \
 		--from-aag \
@@ -107,8 +109,10 @@ rhs: check
 
 	cp $(RHS_V) $(RHS_BUILD)/design.v
 
+	sed '/^read_verilog/a chparam -set N $(N) rhs' $(SYNTH_SCRIPT) > $(RHS_BUILD)/synth.ys
+
 	cd $(RHS_BUILD) && \
-		$(YOSYS) -q -s $(SYNTH_SCRIPT)
+		$(YOSYS) -q -s synth.ys
 
 	$(CNF_GEN) \
 		--from-aag \
@@ -186,22 +190,6 @@ solve: miter
 
 
 # ==================================================
-# Regression
-# ==================================================
-
-regression:
-	@test -n "$(TESTS)" || { echo "No equivalence cases found"; exit 1; }
-	@set -e; \
-	for test in $(TESTS); do \
-		echo; \
-		echo "========================================"; \
-		echo "Equivalence test: $$test"; \
-		echo "========================================"; \
-		$(MAKE) -f equiv.mk run TEST=$$test; \
-	done
-
-
-# ==================================================
 # Cleanup
 # ==================================================
 
@@ -216,5 +204,4 @@ clean:
 	rhs \
 	miter \
 	solve \
-	regression \
 	clean

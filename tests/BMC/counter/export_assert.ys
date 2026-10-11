@@ -1,5 +1,6 @@
 # Same RTL, with its native assertion enabled.
 read_verilog -formal -D NATIVE_ASSERT counter.v
+chparam -set N 4 counter
 hierarchy -check -top counter
 prep -top counter -flatten
 write_json build/counter_assert.json

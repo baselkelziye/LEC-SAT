@@ -1,5 +1,6 @@
 # Run from this directory after creating build/ (or use make export).
 read_verilog counter.v
+chparam -set N 4 counter
 hierarchy -check -top counter
 synth -top counter -flatten
 dffunmap

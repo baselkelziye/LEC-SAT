@@ -5,9 +5,10 @@ cnf_gen
 miter_gen
 bmc_gen
 __pycache__/
-/build/
+build/
 /miter_circuit/cex_decoder
 /solvers/backtracking/backtracking_solver
+/solvers/minisat/minisat
 
 # Object / compiler files
 *.o
@@ -28,7 +29,7 @@ miter_circuit/*.cnf
 # -------------------------
 # Temporary / debug files
 # -------------------------
-core
+/core
 core.*
 *.tmp
 *.log

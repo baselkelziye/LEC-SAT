@@ -1,3 +1,3 @@
-module rhs(input wire a, b, output wire y);
+module rhs #(parameter integer N = 4)(input wire [N-1:0] a, b, output wire [N-1:0] y);
     assign y = ~(~a | ~b);
 endmodule
